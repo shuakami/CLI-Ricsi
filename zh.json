@@ -1,6 +1,6 @@
 {
   "welcome_message": "CLI-Ricsi",
-  "version": "版本: 1.0.0",
+  "version": "版本: 1.0.4",
   "author": "作者: @Shukami",
   "checking_node": "正在检测Node.js环境...",
   "node_detected": "检测到Node.js版本: {{version}}",
@@ -45,7 +45,7 @@
   "mirror_source_configured": "已配置国内镜像源。",
   "prompt_configure_mirror": "配置为国内镜像源以加速依赖安装吗？",
   "mirror_source_configuration_complete": "镜像源配置完成。",
-  "installing_dependencies": "正在安装依赖...",
+  "installing_dependencies": "正在安装依赖...(大约25-40秒)",
   "dependencies_installation_complete": "依赖安装完成。",
   "dependencies_installation_failed": "依赖安装失败。请查看错误信息并考虑向开发者社区反馈。",
   "prompt_start_project": "是否启动项目？",

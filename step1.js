@@ -144,7 +144,7 @@ async function main() {
     await checkAndLoadLanguage();
 
     // 定义目标目录路径
-    const targetDirectory = path.join(__dirname, 'wuhu-home-Caidan');
+    const targetDirectory = path.join(process.cwd(), 'wuhu-home-Caidan');
 
     // 检查目标目录是否存在
     if (!fs.existsSync(targetDirectory)) {

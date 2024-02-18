@@ -15,8 +15,8 @@ dependencies:
     specifier: ^3.12.0
     version: 3.12.0
   cli-ricsi:
-    specifier: ^1.0.0
-    version: 1.0.0
+    specifier: ^1.0.3
+    version: 1.0.3
   figlet:
     specifier: ^1.7.0
     version: 1.7.0
@@ -197,8 +197,8 @@ packages:
       string-width: 4.2.3
     dev: false
 
-  /cli-ricsi@1.0.0:
-    resolution: {integrity: sha512-AI7mbybifRB7CVSXukRgb8TDw9rSqPWVvkCZvkf8GO5qqaD2dTUjnNQBYHSNlAVubcLVEAwCZACx7XQ/xCSV4Q==}
+  /cli-ricsi@1.0.3:
+    resolution: {integrity: sha512-iQ7siBAp47/BX8U7ymt4UKNtfEEof5v5Jz+sdX2j2fgDhoe+SZosVun4I+ScK/VI0zIsybXf7IEW00fpYZxhJg==}
     hasBin: true
     dependencies:
       boxen: 7.1.1

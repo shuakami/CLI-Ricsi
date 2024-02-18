@@ -1,6 +1,6 @@
 {
   "welcome_message": "CLI-Ricsi",
-  "version": "Version: 1.0.0",
+  "version": "Version: 1.0.4",
   "author": "Author: @Shukami",
   "checking_node": "Checking Node.js environment...",
   "node_detected": "Node.js version detected: {{version}}",
