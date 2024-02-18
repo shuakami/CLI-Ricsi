@@ -6,17 +6,55 @@ import chalk from 'chalk';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+import i18n from 'i18next';
+import i18next from "i18next";
+import Backend from "i18next-fs-backend";
 
 // 获取当前文件的路径和目录
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const languageFilePath = path.join(__dirname, 'lan.json');
+
+
+
+// 初始化i18next
+async function initI18Next(selectedLanguage) {
+    await i18next.use(Backend).init({
+        lng: selectedLanguage,
+        fallbackLng: 'en',
+        backend: {
+            loadPath: path.join(__dirname, '{{lng}}.json'),
+        },
+    });
+}
+
+// 检查语言配置文件并加载语言
+async function checkAndLoadLanguage() {
+    let selectedLanguage = 'en';
+    if (fs.existsSync(languageFilePath)) {
+        const lanConfig = JSON.parse(fs.readFileSync(languageFilePath, 'utf-8'));
+        selectedLanguage = lanConfig.language;
+    } else {
+        const answers = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'language',
+                message: 'Choose your language/选择你的语言/Выберите ваш язык:',
+                choices: ['en', 'zh', 'ru'],
+            },
+        ]);
+        fs.writeFileSync(languageFilePath, JSON.stringify({ language: answers.language }, null, 2), 'utf-8');
+        selectedLanguage = answers.language;
+    }
+    await initI18Next(selectedLanguage);
+}
 
 // 执行命令函数
 function executeCommand(command, { silent = false } = {}) {
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
-                if (!silent) console.error(`执行命令出错: ${stderr}`);
+                if (!silent) console.error(i18n.t('execution_failed', { stderr }));
                 reject(stderr);
             } else {
                 resolve(stdout.trim());
@@ -27,19 +65,19 @@ function executeCommand(command, { silent = false } = {}) {
 
 // 检查pnpm是否安装
 async function checkAndInstallPnpm() {
-    const spinner = ora('检查 pnpm 是否安装...').start();
+    const spinner = ora(i18n.t('checking_pnpm_installed')).start();
     try {
         await executeCommand('pnpm --version', { silent: true });
-        spinner.succeed(chalk.cyan('pnpm 已安装。'));
+        spinner.succeed(chalk.cyan(i18n.t('pnpm_already_installed')));
         return true;
     } catch (error) {
-        spinner.warn(chalk.yellow('pnpm 未安装，尝试自动安装...'));
+        spinner.warn(chalk.yellow(i18n.t('pnpm_not_installed_trying')));
         try {
             await executeCommand('npm install -g pnpm');
-            spinner.succeed(chalk.cyan('pnpm 安装成功。'));
+            spinner.succeed(chalk.cyan(i18n.t('pnpm_installation_success')));
             return true;
         } catch (installationError) {
-            spinner.fail(chalk.red('pnpm 安装失败，请手动安装。'));
+            spinner.fail(chalk.red(i18n.t('pnpm_installation_failed')));
             return false;
         }
     }
@@ -47,7 +85,7 @@ async function checkAndInstallPnpm() {
 
 // 检测并配置镜像源
 async function configurePackageManagerSource() {
-    const spinner = ora('配置镜像源...').start();
+    const spinner = ora(i18n.t('configuring_mirror_source')).start();
     const pnpmConfig = await executeCommand('pnpm config get registry', { silent: true });
     const npmConfig = await executeCommand('npm config get registry', { silent: true });
     const isPnpmCN = pnpmConfig.includes('registry.npmmirror.com');
@@ -59,28 +97,28 @@ async function configurePackageManagerSource() {
             {
                 type: 'confirm',
                 name: 'configure',
-                message: '配置为国内镜像源以加速依赖安装吗？',
+                message: i18n.t('prompt_configure_mirror'),
                 default: true,
             }
         ]);
         if (answers.configure) {
             if (!isPnpmCN) await executeCommand('pnpm config set registry https://registry.npmmirror.com');
             if (!isNpmCN) await executeCommand('npm config set registry https://registry.npmmirror.com');
-            console.log(chalk.cyan('镜像源配置完成。'));
+            console.log(chalk.cyan(i18n.t('mirror_source_configuration_complete')));
         }
     } else {
-        spinner.succeed(chalk.cyan('已配置国内镜像源。'));
+        spinner.succeed(chalk.cyan(i18n.t('mirror_source_configured')));
     }
 }
 
 // 安装依赖
 async function installDependencies() {
-    const spinner = ora('正在安装依赖...').start();
+    const spinner = ora(i18n.t('installing_dependencies')).start();
     try {
         await executeCommand('pnpm install');
-        spinner.succeed('依赖安装完成。');
+        spinner.succeed(i18n.t('dependencies_installation_complete'));
     } catch (error) {
-        spinner.fail('依赖安装失败。请查看错误信息并考虑向开发者社区反馈。');
+        spinner.fail(i18n.t('dependencies_installation_failed'));
         console.error(chalk.red(error));
     }
 }
@@ -91,33 +129,35 @@ async function startProject() {
         {
             type: 'confirm',
             name: 'start',
-            message: '是否启动项目？',
+            message: i18n.t('prompt_start_project'),
             default: true,
         }
     ]);
     if (answers.start) {
-        console.log(chalk.yellow('项目已启动，您可以在5秒后看到效果。如果没有，请手动在浏览器中打开 http://localhost:3000/'));
+        console.log(chalk.yellow(i18n.t('project_started_info')));
         await executeCommand('pnpm dev', { silent: false });
     }
 }
 
 // 主函数
 async function main() {
+    await checkAndLoadLanguage();
+
     // 定义目标目录路径
     const targetDirectory = path.join(__dirname, 'wuhu-home-Caidan');
 
     // 检查目标目录是否存在
     if (!fs.existsSync(targetDirectory)) {
-        console.error(chalk.red(`目标目录不存在: ${targetDirectory}`));
+        console.error(chalk.red(i18n.t('target_directory_not_exist', { targetDirectory })));
         return; // 如果目标目录不存在，则终止执行
     }
 
     // 尝试更改当前工作目录
     try {
         process.chdir(targetDirectory);
-        console.log(chalk.greenBright(`成功进入项目目录: 🌻${targetDirectory}`));
+        console.log(chalk.greenBright(i18n.t('entering_project_directory', { targetDirectory })));
     } catch (error) {
-        console.error(chalk.red(`切换目录失败: ${error.message}`));
+        console.error(chalk.red(i18n.t('changing_directory_failed', { message: error.message })));
         return; // 如果无法切换目录，终止执行
     }
 
@@ -129,4 +169,4 @@ async function main() {
     await startProject();
 }
 
-main().catch(error => console.error(chalk.red(`执行脚本时出错: ${error}`)));
+main().catch(error => console.error(chalk.red(i18n.t('execution_completed', { error }))));

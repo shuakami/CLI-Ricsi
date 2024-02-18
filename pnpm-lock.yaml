@@ -14,6 +14,9 @@ dependencies:
   cli-progress:
     specifier: ^3.12.0
     version: 3.12.0
+  cli-ricsi:
+    specifier: ^1.0.0
+    version: 1.0.0
   figlet:
     specifier: ^1.7.0
     version: 1.7.0
@@ -23,6 +26,9 @@ dependencies:
   i18next:
     specifier: ^23.8.2
     version: 23.8.2
+  i18next-fs-backend:
+    specifier: ^2.3.1
+    version: 2.3.1
   inquirer:
     specifier: ^9.2.14
     version: 9.2.14
@@ -189,6 +195,25 @@ packages:
     engines: {node: '>=4'}
     dependencies:
       string-width: 4.2.3
+    dev: false
+
+  /cli-ricsi@1.0.0:
+    resolution: {integrity: sha512-AI7mbybifRB7CVSXukRgb8TDw9rSqPWVvkCZvkf8GO5qqaD2dTUjnNQBYHSNlAVubcLVEAwCZACx7XQ/xCSV4Q==}
+    hasBin: true
+    dependencies:
+      boxen: 7.1.1
+      chalk: 5.3.0
+      cli-progress: 3.12.0
+      figlet: 1.7.0
+      figures: 6.0.1
+      i18next: 23.8.2
+      i18next-fs-backend: 2.3.1
+      inquirer: 9.2.14
+      ora: 8.0.1
+      os-locale: 6.0.2
+      simple-git: 3.22.0
+    transitivePeerDependencies:
+      - supports-color
     dev: false
 
   /cli-spinners@2.9.2:
@@ -358,6 +383,10 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
+    dev: false
+
+  /i18next-fs-backend@2.3.1:
+    resolution: {integrity: sha512-tvfXskmG/9o+TJ5Fxu54sSO5OkY6d+uMn+K6JiUGLJrwxAVfer+8V3nU8jq3ts9Pe5lXJv4b1N7foIjJ8Iy2Gg==}
     dev: false
 
   /i18next@23.8.2:

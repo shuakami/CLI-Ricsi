@@ -9,43 +9,79 @@ import path from 'path';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-
+import i18next from 'i18next';
+import Backend from 'i18next-fs-backend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const languageFilePath = path.join(__dirname, 'lan.json');
 
-function displayWelcomeMessage() {
-    console.log(chalk.cyan(figlet.textSync('CLI-Ricsi', { font: 'Slant' })));
-    console.log(chalk.cyan('Version: 1.0.0\nAuthor: @Shukami\n'));
+// 初始化i18next
+async function initI18Next(selectedLanguage) {
+    await i18next.use(Backend).init({
+        lng: selectedLanguage,
+        fallbackLng: 'en',
+        backend: {
+            loadPath: path.join(__dirname, '{{lng}}.json'),
+        },
+    });
+}
+
+// 检查语言配置文件并加载语言
+async function checkAndLoadLanguage() {
+    let selectedLanguage = 'en';
+    if (fs.existsSync(languageFilePath)) {
+        const lanConfig = JSON.parse(fs.readFileSync(languageFilePath, 'utf-8'));
+        selectedLanguage = lanConfig.language;
+    } else {
+        const answers = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'language',
+                message: 'Choose your language/选择你的语言/Выберите ваш язык:',
+                choices: ['en', 'zh', 'ru'],
+            },
+        ]);
+        fs.writeFileSync(languageFilePath, JSON.stringify({ language: answers.language }, null, 2), 'utf-8');
+        selectedLanguage = answers.language;
+    }
+    await initI18Next(selectedLanguage);
+}
+
+async function displayWelcomeMessage() {
+    await checkAndLoadLanguage();
+    console.log(chalk.cyan(figlet.textSync(i18next.t('welcome_message'), { font: 'Slant' })));
+    console.log(chalk.cyan(`${i18next.t('version')}\n${i18next.t('author')}\n`));
     checkNodeEnvironment();
 }
 
+
 function checkNodeEnvironment() {
-    const spinner = ora(chalk.yellow('正在检测Node.js环境...')).start();
+    const spinner = ora(chalk.yellow(i18next.t('checking_node'))).start();
 
     try {
         const nodeVersion = execSync('node -v').toString().trim();
-        spinner.succeed(chalk.green(`检测到Node.js版本: ${nodeVersion}`));
+        spinner.succeed(chalk.green(i18next.t('node_detected', { version: nodeVersion })));
         checkPackageManager('npm');
     } catch (error) {
-        spinner.fail(chalk.red('未检测到Node.js环境，请安装Node.js'));
-        console.log(chalk.yellow('请访问 https://nodejs.org/ 下载并安装Node.js'));
+        spinner.fail(chalk.red(i18next.t('node_not_detected')));
+        console.log(chalk.yellow(i18next.t('visit_node_website')));
     }
 }
 
 function checkPackageManager(packageManager) {
-    const spinner = ora(chalk.yellow(`正在检测${packageManager}环境...`)).start();
+    const spinner = ora(chalk.yellow(i18next.t('checking_node', { packageManager: packageManager }))).start();
 
     try {
         const version = execSync(`${packageManager} --version`).toString().trim();
-        spinner.succeed(chalk.green(`检测到${packageManager}版本: ${version}`));
+        spinner.succeed(chalk.green(i18next.t('execution_completed', { packageManager: packageManager, version: version })));
         if (packageManager === 'npm') {
             checkPackageManager('pnpm');
         } else {
-            detectNetworkEnvironment(); // After checking pnpm, proceed to network check
+            detectNetworkEnvironment(); // 继续网络环境检测
         }
     } catch (error) {
-        spinner.fail(chalk.red(`未检测到${packageManager}环境`));
+        spinner.fail(chalk.red(i18next.t('package_manager_not_detected', { packageManager: packageManager })));
         offerPackageManagerInstallation(packageManager);
     }
 }
@@ -55,29 +91,28 @@ function offerPackageManagerInstallation(packageManager) {
         {
             type: 'confirm',
             name: 'install',
-            message: `未检测到${packageManager}，是否尝试自动安装?`,
+            message: i18next.t('try_auto_install', { packageManager: packageManager }),
             default: true,
         }
     ]).then((answers) => {
         if (answers.install) {
             installPackageManager(packageManager);
         } else {
-            console.log(chalk.yellow(`请手动安装${packageManager}。`));
+            console.log(chalk.yellow(i18next.t('manual_install_suggestion', { packageManager: packageManager })));
             if (packageManager === 'npm') {
-                checkPackageManager('pnpm'); // Skip to next check
+                checkPackageManager('pnpm'); // 跳过npm，检查pnpm
             } else {
-                detectNetworkEnvironment(); // Proceed to network check
+                detectNetworkEnvironment(); // 继续网络环境检测
             }
         }
     });
 }
 
 function installPackageManager(packageManager) {
-    const spinner = ora(chalk.yellow(`尝试安装${packageManager}...`)).start();
+    const spinner = ora(chalk.yellow(i18next.t('installing_package_manager', { packageManager }))).start();
     let installCommand;
 
     if (packageManager === 'npm') {
-        // npm is usually installed with Node.js; this is just for example
         installCommand = 'curl -L https://www.npmjs.com/install.sh | sh';
     } else if (packageManager === 'pnpm') {
         installCommand = 'npm install -g pnpm';
@@ -85,15 +120,15 @@ function installPackageManager(packageManager) {
 
     exec(installCommand, (error) => {
         if (error) {
-            spinner.fail(chalk.red(`${packageManager}安装失败，请尝试手动安装。`));
-            console.log(chalk.yellow(`访问${packageManager}官网获取安装指导。`));
+            spinner.fail(chalk.red(i18next.t('installation_failed', { packageManager })));
+            console.log(chalk.yellow(i18next.t('manual_install_suggestion', { packageManager })));
             if (packageManager === 'npm') {
                 checkPackageManager('pnpm'); // Skip to next check
             } else {
                 detectNetworkEnvironment(); // Proceed to network check
             }
         } else {
-            spinner.succeed(chalk.green(`${packageManager}安装成功。`));
+            spinner.succeed(chalk.green(i18next.t('installation_succeeded', { packageManager })));
             if (packageManager === 'npm') {
                 checkPackageManager('pnpm'); // Next check
             } else {
@@ -108,10 +143,9 @@ let networkStatus = { 'github.com': false, 'baidu.com': false, 'google.com': fal
 
 async function checkNetwork(url) {
     return new Promise((resolve) => {
-        // 根据操作系统选择适当的命令
         const command = process.platform === "win32" ?
-            `ping -n 1 -w 150 ${url}` : // 对于Windows系统
-            `ping -c 1 -W 1 ${url}`; // 对于Unix/Linux系统
+            `ping -n 1 -w 150 ${url}` : // For Windows systems
+            `ping -c 1 -W 1 ${url}`; // For Unix/Linux systems
 
         exec(command, (error) => {
             networkStatus[url] = !error;
@@ -120,57 +154,53 @@ async function checkNetwork(url) {
     });
 }
 
-
 async function detectNetworkEnvironment() {
-    const spinner = ora(chalk.yellow('正在检测网络环境...')).start();
+    const spinner = ora(chalk.yellow(i18next.t('checking_network'))).start();
     await Promise.all(urls.map(url => checkNetwork(url)));
     spinner.stop();
 
-    // 判断网络环境
     const isInternational = networkStatus['github.com'] && networkStatus['google.com'];
 
     if (isInternational) {
-        console.log(chalk.green('🎉检测到国外网络环境，使用GitHub原始仓库源。'));
+        console.log(chalk.green(i18next.t('international_network_detected')));
         cloneRepository('https://github.com/shuakami/wuhu-home-Caidan.git');
     } else {
-        console.log(chalk.green('🐳检测到国内网络环境，使用国内镜像源。'));
+        console.log(chalk.green(i18next.t('domestic_network_detected')));
         cloneRepository('https://githubfast.com/shuakami/wuhu-home-Caidan.git');
     }
 }
 
-
 function cloneRepository(repoUrl) {
-    const repoName = repoUrl.split('/').pop().replace('.git', ''); // 获取仓库名，并去除.git后缀
-    const spinner = ora(chalk.yellow(`正在从 ${repoUrl} 拉取仓库 ${repoName}...`)).start();
+    const repoName = repoUrl.split('/').pop().replace('.git', '');
+    const spinner = ora(chalk.yellow(i18next.t('starting_installation', { repoUrl, repoName }))).start();
 
     if (fs.existsSync(repoName)) {
-        spinner.warn(chalk.yellow(`${repoName} 仓库已存在。`));
+        spinner.warn(chalk.yellow(i18next.t('repository_exists', { repoName })));
         inquirer.prompt([
             {
                 type: 'confirm',
                 name: 'deleteAndClone',
-                message: '您已经拉取过该仓库。要删除并重新拉取吗？',
+                message: i18next.t('delete_and_reclone'),
                 default: false,
             }
         ]).then((answers) => {
             if (answers.deleteAndClone) {
-                fs.rmSync(repoName, { recursive: true, force: true }); // 使用fs删除已存在的仓库文件夹
+                fs.rmSync(repoName, { recursive: true, force: true });
                 executeGitClone(repoUrl, spinner);
             } else {
-                // 检测仓库完整性的选项
                 inquirer.prompt([
                     {
                         type: 'confirm',
                         name: 'checkIntegrity',
-                        message: '要检测现有仓库的完整性吗？（注：如果你已经安装过依赖，不要尝试此选项，会导致你卡死）',
+                        message: i18next.t('check_integrity'),
                         default: true,
                     }
                 ]).then((answers) => {
                     if (answers.checkIntegrity) {
                         checkRepoIntegrity(repoName, repoUrl, spinner);
                     } else {
-                        spinner.info(chalk.yellow('保留现有仓库，未进行任何操作。'));
-                        executeNextStep(); // 确保在此分支也调用executeNextStep继续执行后续步骤
+                        spinner.info(chalk.yellow(i18next.t('keeping_existing_repo')));
+                        executeNextStep();
                     }
                 });
             }
@@ -185,21 +215,22 @@ function checkRepoIntegrity(repoName, repoUrl, spinner) {
         const directoryMD5 = calculateDirectoryMD5(repoName);
         const expectedMD5 = "467bcf27a0716dc3b48905cb87ca993f";
         if (directoryMD5 === expectedMD5) {
-            spinner.succeed(chalk.green('仓库完整性通过MD5哈希检测。'));
-            executeNextStep(); // 完整性检查通过后继续
+            spinner.succeed(chalk.green(i18next.t('repo_integrity_passed')));
+            executeNextStep();
         } else {
-            throw new Error('哈希值不匹配');
+            throw new Error(i18next.t('hash_mismatch'));
         }
     } catch (error) {
-        console.warn(chalk.yellow(`MD5检测失败: ${error.message}，正在尝试目录大小和文件数量检测...`));
-        const { fileCount, totalSize } = getDirectoryStats(repoName);
+        spinner.warn(chalk.yellow(i18next.t('md5_check_failed', { message: error.message })));
+
         const expectedSizeLowerBound = 21500000; // 21.5 MB
         const expectedSizeUpperBound = 22609920; // 22.60992 MB
         const expectedFileCount = 111;
 
+        const { fileCount, totalSize } = getDirectoryStats(repoName);
         if (totalSize >= expectedSizeLowerBound && totalSize <= expectedSizeUpperBound && fileCount >= expectedFileCount) {
-            spinner.succeed(chalk.green('仓库完整性通过目录大小和文件数量检测。'));
-            executeNextStep(); // 即使通过目录大小和文件数量检测，也继续执行
+            spinner.succeed(chalk.green(i18next.t('size_and_count_check_passed')));
+            executeNextStep();
         } else {
             promptForReclone(spinner, repoName, repoUrl);
         }
@@ -207,12 +238,12 @@ function checkRepoIntegrity(repoName, repoUrl, spinner) {
 }
 
 function promptForReclone(spinner, repoName, repoUrl) {
-    spinner.warn(chalk.yellow('仓库可能不完整，是否重新拉取？'));
+    spinner.warn(chalk.yellow(i18next.t('repo_may_be_incomplete')));
     inquirer.prompt([
         {
             type: 'confirm',
             name: 'reClone',
-            message: '要删除当前仓库并重新拉取吗？',
+            message: i18next.t('delete_and_repull'),
             default: false,
         }
     ]).then((answers) => {
@@ -220,12 +251,10 @@ function promptForReclone(spinner, repoName, repoUrl) {
             fs.rmSync(repoName, { recursive: true, force: true });
             executeGitClone(repoUrl, spinner);
         } else {
-            executeNextStep(); // 即使用户决定不重新拉取，也应继续执行
+            executeNextStep(); // Even if the user decides not to re-clone, continue execution
         }
     });
 }
-
-
 
 
 function getDirectoryStats(dirPath) {
@@ -283,32 +312,43 @@ function calculateDirectoryMD5(directoryPath) {
 
 
 function executeGitClone(repoUrl, spinner) {
-    spinner.text = `正在从 ${repoUrl} 拉取仓库...`;
+    const repoName = repoUrl.split('/').pop().replace('.git', '');
+    const cloneDirectory = path.join(process.cwd(), repoName); // 目标克隆目录设置为当前工作目录下
+
+    spinner.text = i18next.t('cloning_repository', { repoUrl });
     spinner.start();
 
-    exec(`git clone ${repoUrl}`, (error) => {
+    // 检查目标目录是否已存在
+    if (fs.existsSync(cloneDirectory)) {
+        spinner.fail(chalk.yellow(i18next.t('repository_already_exists', { repoName })));
+        return; // 如果目标目录已存在，则停止执行
+    }
+
+    exec(`git clone ${repoUrl} "${cloneDirectory}"`, (error) => { // 注意：这里添加了克隆的目标路径
         if (error) {
-            spinner.fail(chalk.red(`仓库拉取失败，请检查git配置或网络连接。错误信息：${error.message}`));
-            executeNextStep(); // 即使拉取失败，也确保调用executeNextStep继续执行
+            spinner.fail(chalk.red(i18next.t('clone_failed', { errorMessage: error.message })));
+            executeNextStep(); // 确保执行继续，即使克隆失败
         } else {
-            spinner.succeed(chalk.green('仓库成功拉取。'));
-            executeNextStep(); // 拉取成功后继续执行
+            spinner.succeed(chalk.green(i18next.t('clone_success')));
+            executeNextStep(); // 克隆成功后继续执行
         }
     });
 }
 
 
+
 function executeNextStep() {
-    console.log(chalk.cyan('开始执行安装部分...'));
+    console.log(chalk.cyan(i18next.t('starting_installation')));
     const scriptPath = path.join(__dirname, 'step1.js');
     const subprocess = spawn('node', [scriptPath], { stdio: 'inherit' });
 
     subprocess.on('close', (code) => {
         if (code === 0) {
-            console.log(chalk.green('执行完成'));
+            console.log(chalk.green(i18next.t('execution_completed')));
         } else {
-            console.error(chalk.red(`子进程退出码：${code}`));
+            console.error(chalk.red(i18next.t('subprocess_exit_code', { code })));
         }
     });
 }
+
 displayWelcomeMessage();

@@ -1,5 +1,5 @@
 {
-  "welcome_message": "Welcome to CLI-Ricsi",
+  "welcome_message": "CLI-Ricsi",
   "version": "Version: 1.0.0",
   "author": "Author: @Shukami",
   "checking_node": "Checking Node.js environment...",
@@ -20,6 +20,11 @@
   "domestic_network_detected": "🐳 Domestic network environment detected, using domestic mirror source.",
   "repository_exists": "{{repoName}} repository already exists.",
   "delete_and_reclone": "You have already pulled the repository. Do you want to delete and re-pull?",
+
+  "cloning_repository": "Cloning repository.",
+  "clone_success": "Repository cloned successfully.",
+  "clone_failed": "Failed to clone the repository. Please check your Git configuration or network connection.",
+
   "check_integrity": "Do you want to check the integrity of the existing repository? (Note: If you have already installed dependencies, do not try this option, it will cause you to freeze)",
   "keeping_existing_repo": "Keeping existing repository, no action taken.",
   "repo_integrity_passed": "Repository integrity check passed via MD5 hash.",
